@@ -57,6 +57,12 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      - name: Export TF_VAR_* repository variables
+        env:
+          VARS_JSON: ${{ toJSON(vars) }}
+        run: |
+          echo "$VARS_JSON" | jq -r 'to_entries[] | select(.key | startswith("TF_VAR_")) | "\(.key)<<TFVAR_EOF\n\(.value)\nTFVAR_EOF"' >> "$GITHUB_ENV"
+
       - name: Read pinned versions
         id: versions
         run: |

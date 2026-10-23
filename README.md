@@ -75,6 +75,8 @@ Secrets:
 
 The caller must grant `id-token: write` and `contents: read`.
 
+Example inputs: define repository variables `TF_VAR_<variable>` for every example input without a default; list values use JSON, e.g. `["subnet-a","subnet-b"]`. Every repository variable whose name starts with `TF_VAR_` is exported into the job environment before the engine runs.
+
 AWS:
 
 ```yaml
