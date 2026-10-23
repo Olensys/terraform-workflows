@@ -38,7 +38,7 @@ Inputs: none. Secrets: none (uses `GITHUB_TOKEN`). Permissions: `contents: write
 
 Runs `googleapis/release-please-action@v4` with `release-type: terraform-module`. Conventional commits drive the version bump and a release PR; merging it creates the `vX.Y.Z` tag and GitHub release.
 
-Note: the organization setting "Allow GitHub Actions to create and approve pull requests" must be enabled for release PRs to open.
+Note: the organization setting "Allow GitHub Actions to create and approve pull requests" must be enabled for release PRs to open. PRs opened with `GITHUB_TOKEN` do not trigger CI workflows, so close and reopen a release PR (or push to its branch) to run checks on it.
 
 ```yaml
 name: release
