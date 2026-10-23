@@ -1,0 +1,122 @@
+# terraform-workflows
+
+Reusable GitHub Actions workflows for Olensys Terraform/OpenTofu modules. The repository is public, so the workflows can be called from any repository.
+
+Callers reference the workflows by major tag: `Olensys/terraform-workflows/.github/workflows/<name>.yml@v1`.
+
+## Module repo requirements
+
+- `.terraform-version` and `.opentofu-version` at the repo root, each containing a single version (for example `1.15.6` and `1.12.5`).
+- `.pre-commit-config.yaml` using `antonbabenko/pre-commit-terraform` hooks (`terraform_fmt`, `terraform_validate`, `terraform_docs`, `terraform_tflint`, `terraform_trivy`).
+- `examples/minimal`, `tests/defaults.tftest.hcl` and (for integration) `tests/complete.tftest.hcl`.
+
+## module-ci.yml
+
+Inputs: none. Secrets: none. Permissions: `contents: read`.
+
+Jobs:
+
+- `static`: installs pre-commit, Terraform, tflint, trivy and terraform-docs, then runs `pre-commit run --all-files --show-diff-on-failure`. The hooks come from the module's own `.pre-commit-config.yaml`.
+- `validate-and-test`: matrix `engine: [terraform, tofu]`. Each engine runs `init -backend=false -input=false`, `validate` and `test -filter=tests/defaults.tftest.hcl` in the repo root, then `init -backend=false` and `validate` in `examples/minimal`.
+
+```yaml
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  ci:
+    uses: Olensys/terraform-workflows/.github/workflows/module-ci.yml@v1
+```
+
+## module-release.yml
+
+Inputs: none. Secrets: none (uses `GITHUB_TOKEN`). Permissions: `contents: write`, `pull-requests: write`.
+
+Runs `googleapis/release-please-action@v4` with `release-type: terraform-module`. Conventional commits drive the version bump and a release PR; merging it creates the `vX.Y.Z` tag and GitHub release.
+
+Note: the organization setting "Allow GitHub Actions to create and approve pull requests" must be enabled for release PRs to open.
+
+```yaml
+name: release
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  release:
+    uses: Olensys/terraform-workflows/.github/workflows/module-release.yml@v1
+```
+
+## module-integration.yml
+
+Runs `<engine> init -backend=false` and `<engine> test -filter=tests/complete.tftest.hcl` against a real cloud account using OIDC. Runs are serialized per repository (`concurrency` group `integration-<repo>`, no cancellation) and time out after 60 minutes.
+
+Inputs:
+
+| Name | Required | Default | Description |
+|------|----------|---------|-------------|
+| `cloud` | yes | | `aws` or `google` |
+| `engine` | no | `terraform` | `terraform` or `tofu` |
+
+Secrets:
+
+| Name | Used when | Description |
+|------|-----------|-------------|
+| `AWS_ROLE_ARN` | `cloud: aws` | IAM role assumed via OIDC |
+| `AWS_REGION` | `cloud: aws` | Region for the session |
+| `GCP_WORKLOAD_IDENTITY_PROVIDER` | `cloud: google` | Workload identity provider resource name |
+| `GCP_SERVICE_ACCOUNT` | `cloud: google` | Service account email to impersonate |
+
+The caller must grant `id-token: write` and `contents: read`.
+
+AWS:
+
+```yaml
+name: integration
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 1"
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  integration:
+    uses: Olensys/terraform-workflows/.github/workflows/module-integration.yml@v1
+    with:
+      cloud: aws
+    secrets:
+      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+```
+
+Google:
+
+```yaml
+name: integration
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 1"
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  integration:
+    uses: Olensys/terraform-workflows/.github/workflows/module-integration.yml@v1
+    with:
+      cloud: google
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+```
+
+## License
+
+Apache-2.0.

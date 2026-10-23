@@ -1,0 +1,98 @@
+name: Module CI
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  static:
+    name: Static checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pre-commit
+        run: python -m pip install pre-commit
+
+      - name: Install Terraform (for terraform_validate hook)
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version_file: .terraform-version
+          terraform_wrapper: false
+
+      - name: Install tflint
+        run: curl -fsSL https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+
+      - name: Install trivy
+        uses: aquasecurity/setup-trivy@v0.3.1
+
+      - name: Install terraform-docs
+        run: |
+          set -euo pipefail
+          version="v0.24.0"
+          curl -fsSL -o terraform-docs.tar.gz \
+            "https://github.com/terraform-docs/terraform-docs/releases/download/${version}/terraform-docs-${version}-linux-amd64.tar.gz"
+          tar -xzf terraform-docs.tar.gz terraform-docs
+          sudo install terraform-docs /usr/local/bin/terraform-docs
+          rm -f terraform-docs terraform-docs.tar.gz
+
+      - name: Run pre-commit
+        run: pre-commit run --all-files --show-diff-on-failure
+
+  validate-and-test:
+    name: Validate and test (${{ matrix.engine }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [terraform, tofu]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read pinned versions
+        id: versions
+        run: |
+          set -euo pipefail
+          echo "terraform=$(tr -d '[:space:]' < .terraform-version)" >> "$GITHUB_OUTPUT"
+          echo "tofu=$(tr -d '[:space:]' < .opentofu-version)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Terraform
+        if: matrix.engine == 'terraform'
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ steps.versions.outputs.terraform }}
+          terraform_wrapper: false
+
+      - name: Set up OpenTofu
+        if: matrix.engine == 'tofu'
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: ${{ steps.versions.outputs.tofu }}
+          tofu_wrapper: false
+
+      - name: Init
+        run: ${{ matrix.engine }} init -backend=false -input=false
+
+      - name: Validate
+        run: ${{ matrix.engine }} validate
+
+      - name: Test
+        run: ${{ matrix.engine }} test -filter=tests/defaults.tftest.hcl
+
+      - name: Init example (minimal)
+        working-directory: examples/minimal
+        run: ${{ matrix.engine }} init -backend=false -input=false
+
+      - name: Validate example (minimal)
+        working-directory: examples/minimal
+        run: ${{ matrix.engine }} validate
