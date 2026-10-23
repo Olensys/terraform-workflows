@@ -93,7 +93,16 @@ jobs:
         run: ${{ matrix.engine }} validate
 
       - name: Test
-        run: ${{ matrix.engine }} test -filter=tests/defaults.tftest.hcl
+        env:
+          ENGINE: ${{ matrix.engine }}
+        run: |
+          filters=()
+          for f in tests/*.tftest.hcl; do
+            [ "$f" = "tests/complete.tftest.hcl" ] && continue
+            filters+=("-filter=$f")
+          done
+          if [ ${#filters[@]} -eq 0 ]; then echo "no unit test files"; exit 1; fi
+          "$ENGINE" test "${filters[@]}"
 
       - name: Init example (minimal)
         working-directory: examples/minimal

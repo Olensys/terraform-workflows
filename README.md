@@ -8,7 +8,7 @@ Callers reference the workflows by major tag: `Olensys/terraform-workflows/.gith
 
 - `.terraform-version` and `.opentofu-version` at the repo root, each containing a single version (for example `1.15.6` and `1.12.5`).
 - `.pre-commit-config.yaml` using `antonbabenko/pre-commit-terraform` hooks (`terraform_fmt`, `terraform_validate`, `terraform_docs`, `terraform_tflint`, `terraform_trivy`).
-- `examples/minimal`, `tests/defaults.tftest.hcl` and (for integration) `tests/complete.tftest.hcl`.
+- `examples/minimal`, at least one unit test file in `tests/` (for example `tests/defaults.tftest.hcl`) and (for integration) `tests/complete.tftest.hcl`.
 
 ## module-ci.yml
 
@@ -17,7 +17,7 @@ Inputs: none. Secrets: none. Permissions: `contents: read`.
 Jobs:
 
 - `static`: installs pre-commit, Terraform, tflint, trivy and terraform-docs, then runs `pre-commit run --all-files --show-diff-on-failure`. The hooks come from the module's own `.pre-commit-config.yaml`.
-- `validate-and-test`: matrix `engine: [terraform, tofu]`. Each engine runs `init -backend=false -input=false`, `validate` and `test -filter=tests/defaults.tftest.hcl` in the repo root, then `init -backend=false` and `validate` in `examples/minimal`.
+- `validate-and-test`: matrix `engine: [terraform, tofu]`. Each engine runs `init -backend=false -input=false`, `validate` and `test` in the repo root, with one `-filter` per file in `tests/*.tftest.hcl` except `tests/complete.tftest.hcl` (the integration apply); it fails if there are no unit test files, then `init -backend=false` and `validate` in `examples/minimal`.
 
 ```yaml
 name: ci
