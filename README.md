@@ -73,7 +73,7 @@ Secrets:
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | `cloud: google` | Workload identity provider resource name |
 | `GCP_SERVICE_ACCOUNT` | `cloud: google` | Service account email to impersonate |
 
-The caller must grant `id-token: write` and `contents: read`.
+The caller must grant `id-token: write` and `contents: read`. Never add `pull_request` to this trigger: it would hand OIDC credentials to fork PRs.
 
 Example inputs: define repository variables `TF_VAR_<variable>` for every example input without a default; list values use JSON, e.g. `["subnet-a","subnet-b"]`. Every repository variable whose name starts with `TF_VAR_` is exported into the job environment before the engine runs.
 
@@ -82,9 +82,17 @@ AWS:
 ```yaml
 name: integration
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.tf'
+      - '**/*.tftest.hcl'
+      - '.terraform-version'
+      - '.opentofu-version'
+      - '.github/workflows/integration.yml'
   schedule:
-    - cron: "0 3 * * 1"
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
 permissions:
   id-token: write
   contents: read
@@ -103,9 +111,17 @@ Google:
 ```yaml
 name: integration
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.tf'
+      - '**/*.tftest.hcl'
+      - '.terraform-version'
+      - '.opentofu-version'
+      - '.github/workflows/integration.yml'
   schedule:
-    - cron: "0 3 * * 1"
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
 permissions:
   id-token: write
   contents: read
