@@ -2,7 +2,7 @@
 
 Reusable GitHub Actions workflows for Olensys Terraform/OpenTofu modules. The repository is public, so the workflows can be called from any repository.
 
-Callers reference the workflows by major tag: `Olensys/terraform-workflows/.github/workflows/<name>.yml@v1`.
+Callers reference the workflows by major tag: `Olensys/terraform-workflows/.github/workflows/<name>.yml@v1`. The `v1` tag is a floating alias that is moved to the latest compatible commit on `main`.
 
 ## Module repo requirements
 
