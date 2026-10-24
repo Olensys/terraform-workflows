@@ -75,7 +75,7 @@ Secrets:
 
 The caller must grant `id-token: write` and `contents: read`. Never add `pull_request` to this trigger: it would hand OIDC credentials to fork PRs.
 
-Example inputs: define repository variables `TF_VAR_<variable>` for every example input without a default; list values use JSON, e.g. `["subnet-a","subnet-b"]`. Every repository variable whose name starts with `TF_VAR_` is exported into the job environment before the engine runs.
+Example inputs: define repository variables `TF_VAR_<variable>` for every example input without a default; list values use JSON, e.g. `["subnet-a","subnet-b"]`. Every repository variable whose name starts with `TF_VAR_` (the prefix is matched case-insensitively, because GitHub stores variable names in upper case) is exported into the job environment before the engine runs, with the part after the prefix lowercased (`TF_VAR_PROJECT_ID` becomes `TF_VAR_project_id`) to match Terraform's case-sensitive variable names.
 
 AWS:
 

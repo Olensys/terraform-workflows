@@ -61,7 +61,9 @@ jobs:
         env:
           VARS_JSON: ${{ toJSON(vars) }}
         run: |
-          echo "$VARS_JSON" | jq -r 'to_entries[] | select(.key | startswith("TF_VAR_")) | "\(.key)<<TFVAR_EOF\n\(.value)\nTFVAR_EOF"' >> "$GITHUB_ENV"
+          # GitHub upper-cases variable names (TF_VAR_PROJECT_ID) but Terraform matches TF_VAR_<name> case-sensitively against lowercase variable names, so lowercase the suffix.
+          echo "$VARS_JSON" | jq -r 'to_entries[] | select(.key | ascii_upcase | startswith("TF_VAR_")) | "TF_VAR_\(.key[7:] | ascii_downcase)<<TFVAR_EOF\n\(.value)\nTFVAR_EOF"' >> "$GITHUB_ENV"
+          echo "exported: $(echo "$VARS_JSON" | jq -r 'keys[] | select(ascii_upcase | startswith("TF_VAR_"))' | tr '\n' ' ')"
 
       - name: Read pinned versions
         id: versions
