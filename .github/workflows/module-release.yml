@@ -2,6 +2,9 @@ name: Module Release
 
 on:
   workflow_call:
+    secrets:
+      RELEASE_PLEASE_TOKEN:
+        required: false
 
 permissions:
   contents: read
@@ -16,4 +19,4 @@ jobs:
     steps:
       - uses: googleapis/release-please-action@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
