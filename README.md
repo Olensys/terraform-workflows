@@ -61,7 +61,7 @@ Inputs:
 
 | Name | Required | Default | Description |
 |------|----------|---------|-------------|
-| `cloud` | yes | | `aws` or `google` |
+| `cloud` | yes | | `aws`, `google` or `cloudflare` |
 | `engine` | no | `terraform` | `terraform` or `tofu` |
 
 Secrets:
@@ -72,6 +72,7 @@ Secrets:
 | `AWS_REGION` | `cloud: aws` | Region for the session |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | `cloud: google` | Workload identity provider resource name |
 | `GCP_SERVICE_ACCOUNT` | `cloud: google` | Service account email to impersonate |
+| `CLOUDFLARE_API_TOKEN` | any cloud | Cloudflare API token with DNS edit on the test zone; required for cloud=cloudflare, forwarded to every run |
 
 The caller must grant `id-token: write` and `contents: read`. Never add `pull_request` to this trigger: it would hand OIDC credentials to fork PRs.
 
@@ -133,6 +134,33 @@ jobs:
     secrets:
       GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+```
+
+Cloudflare (no cloud credentials are needed; `secrets: inherit` forwards the org secret `CLOUDFLARE_API_TOKEN`):
+
+```yaml
+name: integration
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.tf'
+      - '**/*.tftest.hcl'
+      - '.terraform-version'
+      - '.opentofu-version'
+      - '.github/workflows/integration.yml'
+  schedule:
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  integration:
+    uses: Olensys/terraform-workflows/.github/workflows/module-integration.yml@v1
+    with:
+      cloud: cloudflare
+    secrets: inherit
 ```
 
 ## License
